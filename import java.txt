@@ -1,0 +1,297 @@
+import java.util.*;
+import java.text.SimpleDateFormat;
+
+abstract class SmartDevice {
+    private String id;
+    private String type;
+    private boolean isOn;
+
+    public SmartDevice(String id, String type) {
+        this.id = id;
+        this.type = type;
+        this.isOn = false;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public boolean isOn() {
+        return isOn;
+    }
+
+    public void turnOn() {
+        isOn = true;
+        System.out.println(type + " " + id + " is now ON.");
+    }
+
+    public void turnOff() {
+        isOn = false;
+        System.out.println(type + " " + id + " is now OFF.");
+    }
+
+    public String getStatus() {
+        return type + " " + id + " is " + (isOn ? "On" : "Off");
+    }
+}
+
+class Light extends SmartDevice {
+    public Light(String id) {
+        super(id, "Light");
+    }
+}
+
+class Thermostat extends SmartDevice {
+    private double temperature;
+
+    public Thermostat(String id, double initialTemp) {
+        super(id, "Thermostat");
+        this.temperature = initialTemp;
+    }
+
+    public double getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(double temperature) {
+        this.temperature = temperature;
+    }
+
+    @Override
+    public String getStatus() {
+        return "Thermostat " + getId() + " is set to " + temperature + " degrees";
+    }
+}
+
+class DoorLock extends SmartDevice {
+    public DoorLock(String id) {
+        super(id, "DoorLock");
+    }
+
+    @Override
+    public String getStatus() {
+        return "DoorLock " + getId() + " is " + (isOn() ? "Locked" : "Unlocked");
+    }
+}
+
+class SmartHomeSystem {
+    private Map<String, SmartDevice> devices;
+    private List<ScheduledTask> schedule;
+    private List<AutomatedTrigger> triggers;
+
+    public SmartHomeSystem() {
+        devices = new HashMap<>();
+        schedule = new ArrayList<>();
+        triggers = new ArrayList<>();
+    }
+
+    public void addDevice(SmartDevice device) {
+        devices.put(device.getId(), device);
+        System.out.println(device.getType() + " " + device.getId() + " added.");
+    }
+
+    public void removeDevice(String deviceId) {
+        if (devices.remove(deviceId) != null) {
+            System.out.println("Device " + deviceId + " removed.");
+        } else {
+            System.out.println("Device " + deviceId + " not found.");
+        }
+    }
+
+    public void turnDeviceOn(String deviceId) {
+        SmartDevice device = devices.get(deviceId);
+        if (device != null) {
+            device.turnOn();
+        }
+    }
+
+    public void turnDeviceOff(String deviceId) {
+        SmartDevice device = devices.get(deviceId);
+        if (device != null) {
+            device.turnOff();
+        }
+    }
+
+    public void scheduleDevice(String deviceId, Date time, boolean turnOn) {
+        schedule.add(new ScheduledTask(deviceId, time, turnOn));
+        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
+        System.out.println("Scheduled " + deviceId + " to turn " + (turnOn ? "ON" : "OFF") + " at " + dateFormat.format(time) + ".");
+    }
+
+    public void automateTask(String condition, double triggerValue, String action) {
+        triggers.add(new AutomatedTrigger(condition, triggerValue, action));
+        System.out.println("Added trigger: " + condition + " " + triggerValue + ", action: " + action);
+    }
+
+    public void updateTime() {
+        Date now = new Date();
+        for (ScheduledTask task : schedule) {
+            if (now.after(task.getTime()) && !task.isExecuted()) {
+                if (task.isTurnOn()) {
+                    turnDeviceOn(task.getDeviceId());
+                } else {
+                    turnDeviceOff(task.getDeviceId());
+                }
+                task.setExecuted(true);
+            }
+        }
+
+        for (AutomatedTrigger trigger : triggers) {
+            trigger.execute(devices);
+        }
+    }
+
+    public String getStatusReport() {
+        StringBuilder report = new StringBuilder();
+        for (SmartDevice device : devices.values()) {
+            report.append(device.getStatus()).append(". ");
+        }
+        return report.toString();
+    }
+
+    public String getScheduledTasks() {
+        StringBuilder report = new StringBuilder();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
+        for (ScheduledTask task : schedule) {
+            report.append("{device: ").append(task.getDeviceId())
+                  .append(", time: ").append(dateFormat.format(task.getTime()))
+                  .append(", command: ").append(task.isTurnOn() ? "Turn On" : "Turn Off")
+                  .append("}, ");
+        }
+        return report.length() > 0 ? "[" + report.substring(0, report.length() - 2) + "]" : "[]";
+    }
+
+    public String getAutomatedTriggers() {
+        StringBuilder report = new StringBuilder();
+        for (AutomatedTrigger trigger : triggers) {
+            report.append("{condition: ").append(trigger.getCondition())
+                  .append(" ").append(trigger.getTriggerValue())
+                  .append(", action: ").append(trigger.getAction())
+                  .append("}, ");
+        }
+        return report.length() > 0 ? "[" + report.substring(0, report.length() - 2) + "]" : "[]";
+    }
+}
+
+class ScheduledTask {
+    private String deviceId;
+    private Date time;
+    private boolean turnOn;
+    private boolean executed;
+
+    public ScheduledTask(String deviceId, Date time, boolean turnOn) {
+        this.deviceId = deviceId;
+        this.time = time;
+        this.turnOn = turnOn;
+        this.executed = false;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public Date getTime() {
+        return time;
+    }
+
+    public boolean isTurnOn() {
+        return turnOn;
+    }
+
+    public boolean isExecuted() {
+        return executed;
+    }
+
+    public void setExecuted(boolean executed) {
+        this.executed = executed;
+    }
+}
+
+class AutomatedTrigger {
+    private String condition;
+    private double triggerValue;
+    private String action;
+
+    public AutomatedTrigger(String condition, double triggerValue, String action) {
+        this.condition = condition;
+        this.triggerValue = triggerValue;
+        this.action = action;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public double getTriggerValue() {
+        return triggerValue;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public void execute(Map<String, SmartDevice> devices) {
+        for (SmartDevice device : devices.values()) {
+            if (condition.equals("temperature") && device instanceof Thermostat) {
+                Thermostat thermostat = (Thermostat) device;
+                if ((thermostat.getTemperature() > triggerValue && action.contains("turnOff")) ||
+                    (thermostat.getTemperature() < triggerValue && action.contains("turnOn"))) {
+                    String targetDeviceId = action.substring(action.indexOf("(") + 1, action.indexOf(")"));
+                    SmartDevice targetDevice = devices.get(targetDeviceId);
+                    if (targetDevice != null) {
+                        if (action.contains("turnOff")) {
+                            targetDevice.turnOff();
+                        } else {
+                            targetDevice.turnOn();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        SmartHomeSystem smartHome = new SmartHomeSystem();
+
+        // Initialize devices
+        Light livingRoomLight = new Light("1");
+        Thermostat homeThermostat = new Thermostat("2", 70.0);
+        DoorLock frontDoorLock = new DoorLock("3");
+
+        smartHome.addDevice(livingRoomLight);
+        smartHome.addDevice(homeThermostat);
+        smartHome.addDevice(frontDoorLock);
+
+        // Process commands
+        smartHome.turnDeviceOn("1");
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 6);
+        cal.set(Calendar.MINUTE, 0);
+        smartHome.scheduleDevice("2", cal.getTime(), true);
+        smartHome.automateTask("temperature", 75, "turnOff(1)");
+
+        // Simulate time update (in a real program this would be a loop)
+        Timer updateTimer = new Timer();
+        updateTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                smartHome.updateTime();
+            }
+        }, 0, 1000);
+
+        // Print status report
+        System.out.println("Status Report: " + smartHome.getStatusReport());
+
+        // Print scheduled tasks
+        System.out.println("Scheduled Tasks: " + smartHome.getScheduledTasks());
+
+        // Print automated triggers
+        System.out.println("Automated Triggers: " + smartHome.getAutomatedTriggers());
+    }
+}
